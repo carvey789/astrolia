@@ -15,6 +15,7 @@ class RegisterRequest(BaseModel):
     birth_date: datetime
     birth_time: str = Field(..., pattern=r"^\d{2}:\d{2}$")
     birth_location: str = Field(..., min_length=1, max_length=255)
+    timezone: Optional[str] = None  # IANA timezone, e.g., "Asia/Bangkok"
     birth_latitude: Optional[float] = None
     birth_longitude: Optional[float] = None
 

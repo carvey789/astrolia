@@ -39,6 +39,7 @@ async def register(request: RegisterRequest, db: Session = Depends(get_db)):
         birth_latitude=request.birth_latitude,
         birth_longitude=request.birth_longitude,
         zodiac_sign_id=zodiac_sign_id,
+        timezone=request.timezone or 'UTC',
     )
     db.add(user)
     db.commit()
