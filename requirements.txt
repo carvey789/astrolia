@@ -12,5 +12,5 @@ httpx>=0.25.0
 google-auth>=2.25.0
 python-dotenv>=1.0.0
 skyfield>=1.46
-google-generativeai>=0.3.0
+# google-generativeai>=0.3.0
 pytz>=2023.3
