@@ -16,7 +16,11 @@ security = HTTPBearer()
 
 def _truncate_password(password: str) -> str:
     """Truncate password to 72 bytes (bcrypt limit)."""
-    return password[:72]
+    # Encode to bytes, truncate, then decode back
+    # This handles multi-byte UTF-8 characters correctly
+    encoded = password.encode('utf-8')[:72]
+    # Decode, ignoring any incomplete multi-byte chars at the end
+    return encoded.decode('utf-8', errors='ignore')
 
 
 def verify_password(plain_password: str, hashed_password: str) -> bool:
