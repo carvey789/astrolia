@@ -8,6 +8,8 @@ from .natal_chart import router as natal_chart_router
 from .numerology import router as numerology_router
 from .transits import router as transits_router
 from .subscription import router as subscription_router
+from .astro_chat import router as astro_chat_router
+from .synastry import router as synastry_router
 
 __all__ = [
     "auth_router",
@@ -20,6 +22,8 @@ __all__ = [
     "numerology_router",
     "transits_router",
     "subscription_router",
+    "astro_chat_router",
+    "synastry_router",
 ]
 
 

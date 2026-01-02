@@ -14,5 +14,5 @@ google-auth>=2.25.0
 requests>=2.31.0
 python-dotenv>=1.0.0
 skyfield>=1.46
-# google-generativeai>=0.3.0
+# Note: AI chat uses Gemini REST API via httpx (no SDK needed)
 pytz>=2023.3

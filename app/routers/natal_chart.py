@@ -5,6 +5,10 @@ from pydantic import BaseModel
 from fastapi import APIRouter
 from skyfield.api import load
 
+# Load .env for GEMINI_API_KEY
+from dotenv import load_dotenv
+load_dotenv()
+
 router = APIRouter(prefix="/natal-chart", tags=["Natal Chart"])
 
 # Load planetary ephemeris
@@ -374,6 +378,8 @@ class AIReadingRequest(BaseModel):
     rising_sign: str
     rising_degree: float
     planets: List[dict]  # List of {planet, sign, degree}
+    user_name: Optional[str] = None  # For personalized greetings
+    birth_date: Optional[str] = None  # e.g., "1990-05-15"
 
 
 class AIReadingResponse(BaseModel):
@@ -387,13 +393,28 @@ class AIReadingResponse(BaseModel):
 @router.post("/ai-reading", response_model=AIReadingResponse)
 async def generate_ai_reading(request: AIReadingRequest):
     """Generate a personalized AI reading based on birth chart data using Gemini."""
-    from ..config import get_settings
+    import os
+    import httpx
 
-    settings = get_settings()
+    api_key = os.getenv("GEMINI_API_KEY")
+
+    # Build personalization context
+    name_greeting = f"for {request.user_name}" if request.user_name else ""
+    birth_info = ""
+    if request.birth_date:
+        try:
+            from datetime import datetime
+            bd = datetime.strptime(request.birth_date, "%Y-%m-%d")
+            birth_info = f"Born on {bd.strftime('%B %d, %Y')}"
+        except:
+            pass
 
     # Build the chart summary for the prompt
     chart_summary = f"""
-Birth Chart Analysis:
+Birth Chart Analysis {name_greeting}:
+{birth_info}
+
+Core Placements:
 - Sun: {request.sun_sign.title()} at {request.sun_degree:.1f}°
 - Moon: {request.moon_sign.title()} at {request.moon_degree:.1f}°
 - Rising: {request.rising_sign.title()} at {request.rising_degree:.1f}°
@@ -404,83 +425,80 @@ Other Planets:
         chart_summary += f"- {p.get('planet', '').title()}: {p.get('sign', '').title()} at {p.get('degree', 0):.1f}°\n"
 
     # Try Gemini AI if API key is available
-    if settings.gemini_api_key:
+    if api_key:
         try:
-            import google.generativeai as genai
+            name_instruction = f"Address the person as {request.user_name}." if request.user_name else "Address the person as 'you'."
 
-            genai.configure(api_key=settings.gemini_api_key)
-            model = genai.GenerativeModel('gemini-pro')
-
-            prompt = f"""You are an expert astrologer. Generate a personalized and insightful birth chart reading.
+            prompt = f"""You are an expert astrologer providing a deeply personalized birth chart reading.
 
 {chart_summary}
 
-Please provide:
-1. A personalized 3-4 sentence overall reading that weaves together the Sun, Moon, and Rising signs
-2. A specific interpretation for the Sun placement (2 sentences about core identity)
-3. A specific interpretation for the Moon placement (2 sentences about emotions)
-4. A specific interpretation for the Rising placement (2 sentences about how others see them)
-5. 3 major life themes based on the planetary positions
+Please provide a warm, insightful reading. {name_instruction}
 
-Be warm, insightful, and specific to this exact combination of placements. Address the person directly using "you".
-Avoid generic statements. Focus on the unique combination of energies.
+Generate:
+1. personalized_reading: A 3-4 sentence overall reading that weaves together the Sun, Moon, and Rising signs. Make it feel personal and specifically about THIS combination.
+2. sun_interpretation: 2 sentences about their core identity based on Sun in {request.sun_sign.title()}
+3. moon_interpretation: 2 sentences about their emotional nature based on Moon in {request.moon_sign.title()}
+4. rising_interpretation: 2 sentences about how others perceive them based on {request.rising_sign.title()} Rising
+5. life_themes: 3 specific life themes based on their unique planetary positions
 
-Format your response as JSON with these exact keys:
-- personalized_reading
-- sun_interpretation
-- moon_interpretation
-- rising_interpretation
-- life_themes (array of 3 strings)
+Be warm, mystical yet grounded. Avoid generic statements. Focus on the unique combination of energies.
+
+Respond ONLY with valid JSON (no markdown, no extra text):
+{{"personalized_reading": "...", "sun_interpretation": "...", "moon_interpretation": "...", "rising_interpretation": "...", "life_themes": ["...", "...", "..."]}}
 """
 
-            response = model.generate_content(prompt)
+            url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent?key={api_key}"
 
-            # Parse the response
-            import json
-            import re
-            text = response.text
+            async with httpx.AsyncClient(timeout=30.0) as client:
+                response = await client.post(
+                    url,
+                    json={
+                        "contents": [{"parts": [{"text": prompt}]}],
+                        "generationConfig": {
+                            "temperature": 0.85,
+                            "maxOutputTokens": 800,
+                        }
+                    }
+                )
 
-            # Try to extract JSON from the response
-            json_match = re.search(r'\{[^{}]*\}', text, re.DOTALL)
-            if json_match:
-                try:
-                    data = json.loads(json_match.group())
-                    return AIReadingResponse(
-                        personalized_reading=data.get('personalized_reading', ''),
-                        sun_interpretation=data.get('sun_interpretation', ''),
-                        moon_interpretation=data.get('moon_interpretation', ''),
-                        rising_interpretation=data.get('rising_interpretation', ''),
-                        life_themes=data.get('life_themes', [])
-                    )
-                except json.JSONDecodeError:
-                    pass
+                if response.status_code == 200:
+                    import json
+                    import re
 
-            # Fallback: use the raw text
-            return AIReadingResponse(
-                personalized_reading=text[:500] if len(text) > 500 else text,
-                sun_interpretation=PLANET_SIGN_READINGS.get('sun', {}).get(request.sun_sign, ''),
-                moon_interpretation=PLANET_SIGN_READINGS.get('moon', {}).get(request.moon_sign, ''),
-                rising_interpretation=PLANET_SIGN_READINGS.get('ascendant', {}).get(request.rising_sign, ''),
-                life_themes=[]
-            )
+                    data = response.json()
+                    text = data.get("candidates", [{}])[0].get("content", {}).get("parts", [{}])[0].get("text", "")
+
+                    # Try to extract JSON from the response
+                    json_match = re.search(r'\{[^{}]*\}', text, re.DOTALL)
+                    if json_match:
+                        try:
+                            parsed = json.loads(json_match.group())
+                            return AIReadingResponse(
+                                personalized_reading=parsed.get('personalized_reading', ''),
+                                sun_interpretation=parsed.get('sun_interpretation', ''),
+                                moon_interpretation=parsed.get('moon_interpretation', ''),
+                                rising_interpretation=parsed.get('rising_interpretation', ''),
+                                life_themes=parsed.get('life_themes', [])
+                            )
+                        except json.JSONDecodeError:
+                            pass
 
         except Exception as e:
             pass  # AI reading unavailable
 
     # Fallback to static readings if no API key or error
+    name_prefix = f"{request.user_name}, your" if request.user_name else "Your"
+
     return AIReadingResponse(
-        personalized_reading=generate_summary(
-            PlanetPositionResponse(planet='sun', sign=request.sun_sign, degree=request.sun_degree, reading=''),
-            PlanetPositionResponse(planet='moon', sign=request.moon_sign, degree=request.moon_degree, reading=''),
-            PlanetPositionResponse(planet='ascendant', sign=request.rising_sign, degree=request.rising_degree, reading='')
-        ),
-        sun_interpretation=PLANET_SIGN_READINGS.get('sun', {}).get(request.sun_sign, 'Your Sun sign brings unique energy.'),
-        moon_interpretation=PLANET_SIGN_READINGS.get('moon', {}).get(request.moon_sign, 'Your Moon sign guides your emotions.'),
-        rising_interpretation=PLANET_SIGN_READINGS.get('ascendant', {}).get(request.rising_sign, 'Your Rising sign shapes first impressions.'),
+        personalized_reading=f"{name_prefix} unique cosmic blueprint combines the creative fire of {request.sun_sign.title()} Sun with the emotional depth of {request.moon_sign.title()} Moon. With {request.rising_sign.title()} Rising, you present yourself to the world with distinctive charm. This combination creates a beautiful balance between your inner world and outer expression.",
+        sun_interpretation=PLANET_SIGN_READINGS.get('sun', {}).get(request.sun_sign, f"{name_prefix} Sun in {request.sun_sign.title()} illuminates your core essence with unique energy."),
+        moon_interpretation=PLANET_SIGN_READINGS.get('moon', {}).get(request.moon_sign, f"{name_prefix} Moon in {request.moon_sign.title()} colors your emotional landscape."),
+        rising_interpretation=PLANET_SIGN_READINGS.get('ascendant', {}).get(request.rising_sign, f"With {request.rising_sign.title()} Rising, you make a distinctive first impression."),
         life_themes=[
-            "Personal growth through self-awareness",
-            "Building meaningful connections",
-            "Finding your authentic expression"
+            f"Embracing your {request.sun_sign.title()} authenticity",
+            f"Nurturing your {request.moon_sign.title()} emotional wisdom",
+            f"Expressing your {request.rising_sign.title()} Rising confidence"
         ]
     )
 

@@ -4,6 +4,11 @@ from typing import List, Optional
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
+
+# Load .env for GEMINI_API_KEY
+from dotenv import load_dotenv
+load_dotenv()
+
 from ..database import get_db
 from ..models import User, TarotHistory
 from ..schemas import TarotHistoryResponse
@@ -13,29 +18,32 @@ from ..utils.timezone import get_user_today
 router = APIRouter(prefix="/tarot", tags=["Tarot"])
 
 # Major Arcana cards with full interpretations
+# Image URLs from public tarot card CDN (Rider-Waite deck)
+TAROT_IMAGE_BASE = "https://www.sacred-texts.com/tarot/pkt/img"
+
 MAJOR_ARCANA = [
-    {"id": "fool", "name": "The Fool", "number": 0, "image": "🃏"},
-    {"id": "magician", "name": "The Magician", "number": 1, "image": "🧙"},
-    {"id": "priestess", "name": "The High Priestess", "number": 2, "image": "🌙"},
-    {"id": "empress", "name": "The Empress", "number": 3, "image": "👑"},
-    {"id": "emperor", "name": "The Emperor", "number": 4, "image": "🏛️"},
-    {"id": "hierophant", "name": "The Hierophant", "number": 5, "image": "📿"},
-    {"id": "lovers", "name": "The Lovers", "number": 6, "image": "💕"},
-    {"id": "chariot", "name": "The Chariot", "number": 7, "image": "⚔️"},
-    {"id": "strength", "name": "Strength", "number": 8, "image": "🦁"},
-    {"id": "hermit", "name": "The Hermit", "number": 9, "image": "🏔️"},
-    {"id": "wheel", "name": "Wheel of Fortune", "number": 10, "image": "🎡"},
-    {"id": "justice", "name": "Justice", "number": 11, "image": "⚖️"},
-    {"id": "hanged", "name": "The Hanged Man", "number": 12, "image": "🙃"},
-    {"id": "death", "name": "Death", "number": 13, "image": "🦋"},
-    {"id": "temperance", "name": "Temperance", "number": 14, "image": "⚗️"},
-    {"id": "devil", "name": "The Devil", "number": 15, "image": "⛓️"},
-    {"id": "tower", "name": "The Tower", "number": 16, "image": "🗼"},
-    {"id": "star", "name": "The Star", "number": 17, "image": "⭐"},
-    {"id": "moon", "name": "The Moon", "number": 18, "image": "🌕"},
-    {"id": "sun", "name": "The Sun", "number": 19, "image": "☀️"},
-    {"id": "judgement", "name": "Judgement", "number": 20, "image": "📯"},
-    {"id": "world", "name": "The World", "number": 21, "image": "🌍"},
+    {"id": "fool", "name": "The Fool", "number": 0, "image": "🃏", "image_url": f"{TAROT_IMAGE_BASE}/ar00.jpg"},
+    {"id": "magician", "name": "The Magician", "number": 1, "image": "🧙", "image_url": f"{TAROT_IMAGE_BASE}/ar01.jpg"},
+    {"id": "priestess", "name": "The High Priestess", "number": 2, "image": "🌙", "image_url": f"{TAROT_IMAGE_BASE}/ar02.jpg"},
+    {"id": "empress", "name": "The Empress", "number": 3, "image": "👑", "image_url": f"{TAROT_IMAGE_BASE}/ar03.jpg"},
+    {"id": "emperor", "name": "The Emperor", "number": 4, "image": "🏛️", "image_url": f"{TAROT_IMAGE_BASE}/ar04.jpg"},
+    {"id": "hierophant", "name": "The Hierophant", "number": 5, "image": "📿", "image_url": f"{TAROT_IMAGE_BASE}/ar05.jpg"},
+    {"id": "lovers", "name": "The Lovers", "number": 6, "image": "💕", "image_url": f"{TAROT_IMAGE_BASE}/ar06.jpg"},
+    {"id": "chariot", "name": "The Chariot", "number": 7, "image": "⚔️", "image_url": f"{TAROT_IMAGE_BASE}/ar07.jpg"},
+    {"id": "strength", "name": "Strength", "number": 8, "image": "🦁", "image_url": f"{TAROT_IMAGE_BASE}/ar08.jpg"},
+    {"id": "hermit", "name": "The Hermit", "number": 9, "image": "🏔️", "image_url": f"{TAROT_IMAGE_BASE}/ar09.jpg"},
+    {"id": "wheel", "name": "Wheel of Fortune", "number": 10, "image": "🎡", "image_url": f"{TAROT_IMAGE_BASE}/ar10.jpg"},
+    {"id": "justice", "name": "Justice", "number": 11, "image": "⚖️", "image_url": f"{TAROT_IMAGE_BASE}/ar11.jpg"},
+    {"id": "hanged", "name": "The Hanged Man", "number": 12, "image": "🙃", "image_url": f"{TAROT_IMAGE_BASE}/ar12.jpg"},
+    {"id": "death", "name": "Death", "number": 13, "image": "🦋", "image_url": f"{TAROT_IMAGE_BASE}/ar13.jpg"},
+    {"id": "temperance", "name": "Temperance", "number": 14, "image": "⚗️", "image_url": f"{TAROT_IMAGE_BASE}/ar14.jpg"},
+    {"id": "devil", "name": "The Devil", "number": 15, "image": "⛓️", "image_url": f"{TAROT_IMAGE_BASE}/ar15.jpg"},
+    {"id": "tower", "name": "The Tower", "number": 16, "image": "🗼", "image_url": f"{TAROT_IMAGE_BASE}/ar16.jpg"},
+    {"id": "star", "name": "The Star", "number": 17, "image": "⭐", "image_url": f"{TAROT_IMAGE_BASE}/ar17.jpg"},
+    {"id": "moon", "name": "The Moon", "number": 18, "image": "🌕", "image_url": f"{TAROT_IMAGE_BASE}/ar18.jpg"},
+    {"id": "sun", "name": "The Sun", "number": 19, "image": "☀️", "image_url": f"{TAROT_IMAGE_BASE}/ar19.jpg"},
+    {"id": "judgement", "name": "Judgement", "number": 20, "image": "📯", "image_url": f"{TAROT_IMAGE_BASE}/ar20.jpg"},
+    {"id": "world", "name": "The World", "number": 21, "image": "🌍", "image_url": f"{TAROT_IMAGE_BASE}/ar21.jpg"},
 ]
 
 # Detailed interpretations for each card
@@ -324,37 +332,43 @@ async def get_all_cards():
 
 @router.get("/daily", response_model=DailyTarotResponse)
 async def get_daily_card(
+    force_new: bool = False,
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
-    """Get daily tarot card (once per day, consistent for the day)."""
+    """Get daily tarot card. Premium users can force a new draw."""
     # Use user's timezone for date calculation
     today = get_user_today(current_user.timezone or 'UTC')
 
-    # Check if user already drew today
-    existing = db.query(TarotHistory).filter(
-        TarotHistory.user_id == current_user.id,
-        TarotHistory.position == "single"
-    ).order_by(TarotHistory.reading_date.desc()).first()
+    # Premium users can force a new draw; free users get once per day
+    if not force_new or not current_user.is_premium:
+        # Check if user already drew today
+        existing = db.query(TarotHistory).filter(
+            TarotHistory.user_id == current_user.id,
+            TarotHistory.position == "single"
+        ).order_by(TarotHistory.reading_date.desc()).first()
 
-    if existing and existing.reading_date.date() == today:
-        card = next((c for c in MAJOR_ARCANA if c["id"] == existing.card_id), None)
-        interp = CARD_INTERPRETATIONS.get(existing.card_id, {})
-        reading_type = "reversed" if existing.is_reversed else "upright"
-        reading = interp.get(reading_type, {})
+        if existing and existing.reading_date.date() == today:
+            card = next((c for c in MAJOR_ARCANA if c["id"] == existing.card_id), None)
+            interp = CARD_INTERPRETATIONS.get(existing.card_id, {})
+            reading_type = "reversed" if existing.is_reversed else "upright"
+            reading = interp.get(reading_type, {})
 
-        return DailyTarotResponse(
-            card=card,
-            is_reversed=existing.is_reversed,
-            already_drawn=True,
-            interpretation=reading.get("meaning", ""),
-            daily_guidance=reading.get("daily_guidance", ""),
-            keywords=reading.get("keywords", [])
-        )
+            return DailyTarotResponse(
+                card=card,
+                is_reversed=existing.is_reversed,
+                already_drawn=True,
+                interpretation=reading.get("meaning", ""),
+                daily_guidance=reading.get("daily_guidance", ""),
+                keywords=reading.get("keywords", [])
+            )
 
-    # Draw new card using date + user as seed
-    day_seed = today.toordinal() + hash(str(current_user.id)) % 1000
-    random.seed(day_seed)
+    # Draw new card - use date seed for free users, true random for premium force_new
+    if force_new and current_user.is_premium:
+        random.seed()  # True random for premium users
+    else:
+        day_seed = today.toordinal() + hash(str(current_user.id)) % 1000
+        random.seed(day_seed)
     card = random.choice(MAJOR_ARCANA)
     is_reversed = random.random() < 0.33
 
@@ -385,46 +399,53 @@ async def get_daily_card(
 
 @router.get("/spread")
 async def get_three_card_spread(
+    force_new: bool = False,
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
-    """Get a 3-card spread (past, present, future) - once per day."""
+    """Get a 3-card spread (past, present, future). Premium users can force new draws."""
     # Use user's timezone for date calculation
     today = get_user_today(current_user.timezone or 'UTC')
     positions = ["past", "present", "future"]
 
-    # Check if user already did a spread today
-    existing_spread = db.query(TarotHistory).filter(
-        TarotHistory.user_id == current_user.id,
-        TarotHistory.position.in_(positions)
-    ).order_by(TarotHistory.reading_date.desc()).limit(3).all()
+    # Premium users can force a new draw; free users get once per day
+    if not force_new or not current_user.is_premium:
+        # Check if user already did a spread today
+        existing_spread = db.query(TarotHistory).filter(
+            TarotHistory.user_id == current_user.id,
+            TarotHistory.position.in_(positions)
+        ).order_by(TarotHistory.reading_date.desc()).limit(3).all()
 
-    # Check if the spread is from today
-    if existing_spread and len(existing_spread) == 3:
-        first_card = existing_spread[0]
-        if first_card.reading_date.date() == today:
-            # Return existing spread
-            result = []
-            for entry in reversed(existing_spread):  # Reverse to get past, present, future order
-                card = next((c for c in MAJOR_ARCANA if c["id"] == entry.card_id), MAJOR_ARCANA[0])
-                interp = CARD_INTERPRETATIONS.get(entry.card_id, {})
-                reading_type = "reversed" if entry.is_reversed else "upright"
-                reading = interp.get(reading_type, {})
+        # Check if the spread is from today
+        if existing_spread and len(existing_spread) == 3:
+            first_card = existing_spread[0]
+            if first_card.reading_date.date() == today:
+                # Return existing spread
+                result = []
+                for entry in reversed(existing_spread):  # Reverse to get past, present, future order
+                    card = next((c for c in MAJOR_ARCANA if c["id"] == entry.card_id), MAJOR_ARCANA[0])
+                    interp = CARD_INTERPRETATIONS.get(entry.card_id, {})
+                    reading_type = "reversed" if entry.is_reversed else "upright"
+                    reading = interp.get(reading_type, {})
 
-                result.append({
-                    "card": card,
-                    "is_reversed": entry.is_reversed,
-                    "position": entry.position,
-                    "already_drawn": True,
-                    "interpretation": reading.get("meaning", ""),
-                    "daily_guidance": reading.get("daily_guidance", ""),
-                    "keywords": reading.get("keywords", [])
-                })
-            return result
+                    result.append({
+                        "card": card,
+                        "is_reversed": entry.is_reversed,
+                        "position": entry.position,
+                        "already_drawn": True,
+                        "interpretation": reading.get("meaning", ""),
+                        "daily_guidance": reading.get("daily_guidance", ""),
+                        "keywords": reading.get("keywords", [])
+                    })
+                return result
 
-    # Draw new spread - use deterministic seed for consistency
-    day_seed = today.toordinal() + hash(str(current_user.id)) % 10000 + 1000
-    random.seed(day_seed)
+
+    # Draw new spread - use date seed for free users, true random for premium force_new
+    if force_new and current_user.is_premium:
+        random.seed()  # True random for premium users
+    else:
+        day_seed = today.toordinal() + hash(str(current_user.id)) % 10000 + 1000
+        random.seed(day_seed)
     shuffled = random.sample(MAJOR_ARCANA, 3)
 
     result = []
@@ -469,3 +490,118 @@ async def get_tarot_history(
         TarotHistory.user_id == current_user.id
     ).order_by(TarotHistory.reading_date.desc()).limit(limit).all()
     return history
+
+
+# ==================== AI PERSONALIZED TAROT ====================
+
+class AITarotRequest(BaseModel):
+    card_id: str
+    is_reversed: bool
+    user_name: Optional[str] = None
+    zodiac_sign: Optional[str] = None
+    question: Optional[str] = None  # User's specific question for the reading
+
+
+class AITarotResponse(BaseModel):
+    personalized_reading: str
+    daily_advice: str
+    reflection_prompt: str
+    affirmation: str
+
+
+@router.post("/ai-reading", response_model=AITarotResponse)
+async def get_ai_tarot_reading(
+    request: AITarotRequest,
+    current_user: User = Depends(get_current_user)
+):
+    """Generate an AI-powered personalized tarot reading."""
+    import os
+    import httpx
+
+    # Get card details
+    card = next((c for c in MAJOR_ARCANA if c["id"] == request.card_id), None)
+    if not card:
+        raise HTTPException(status_code=404, detail="Card not found")
+
+    card_name = card["name"]
+    orientation = "reversed" if request.is_reversed else "upright"
+
+    # Get base interpretation
+    interp = CARD_INTERPRETATIONS.get(request.card_id, {}).get(orientation, {})
+    base_meaning = interp.get("meaning", "")
+
+    api_key = os.getenv("GEMINI_API_KEY")
+
+    if api_key:
+        try:
+            # Build personalization context
+            name_text = f"for {request.user_name}" if request.user_name else ""
+            zodiac_text = f"Their zodiac sign is {request.zodiac_sign.title()}." if request.zodiac_sign else ""
+            question_text = f"They asked: \"{request.question}\"" if request.question else "They drew this card for general daily guidance."
+
+            prompt = f"""You are a mystical tarot reader providing a deeply personal reading.
+
+Card Drawn: {card_name} ({orientation})
+Base Meaning: {base_meaning}
+{zodiac_text}
+{question_text}
+
+Generate a personalized tarot reading {name_text}. Be warm, insightful, and mystical.
+
+Provide:
+1. personalized_reading: A 3-4 sentence reading that feels personal and speaks directly to them. If they asked a question, address it. Reference their zodiac if provided.
+2. daily_advice: One practical piece of advice for today (1-2 sentences)
+3. reflection_prompt: One question for them to reflect on today
+4. affirmation: A short, powerful affirmation related to the card (one sentence)
+
+Respond ONLY with valid JSON:
+{{"personalized_reading": "...", "daily_advice": "...", "reflection_prompt": "...", "affirmation": "..."}}
+"""
+
+            url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent?key={api_key}"
+
+            async with httpx.AsyncClient(timeout=30.0) as client:
+                response = await client.post(
+                    url,
+                    json={
+                        "contents": [{"parts": [{"text": prompt}]}],
+                        "generationConfig": {
+                            "temperature": 0.85,
+                            "maxOutputTokens": 500,
+                        }
+                    }
+                )
+
+                if response.status_code == 200:
+                    import json
+                    import re
+
+                    data = response.json()
+                    text = data.get("candidates", [{}])[0].get("content", {}).get("parts", [{}])[0].get("text", "")
+
+                    json_match = re.search(r'\{[^{}]*\}', text, re.DOTALL)
+                    if json_match:
+                        try:
+                            parsed = json.loads(json_match.group())
+                            return AITarotResponse(
+                                personalized_reading=parsed.get('personalized_reading', ''),
+                                daily_advice=parsed.get('daily_advice', ''),
+                                reflection_prompt=parsed.get('reflection_prompt', ''),
+                                affirmation=parsed.get('affirmation', '')
+                            )
+                        except json.JSONDecodeError:
+                            pass
+
+        except Exception as e:
+            pass  # Fall back to static reading
+
+    # Fallback to enhanced static reading
+    name_prefix = f"{request.user_name}, " if request.user_name else ""
+    zodiac_flavor = f" As a {request.zodiac_sign.title()}, this resonates with your natural strengths." if request.zodiac_sign else ""
+
+    return AITarotResponse(
+        personalized_reading=f"{name_prefix}{card_name} ({orientation}) has appeared for you today. {base_meaning}{zodiac_flavor}",
+        daily_advice=interp.get("daily_guidance", "Trust your intuition and stay open to the messages around you."),
+        reflection_prompt=f"How does the energy of {card_name} show up in your current situation?",
+        affirmation=f"I embrace the wisdom of {card_name} and trust my journey."
+    )

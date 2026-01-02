@@ -189,3 +189,90 @@ async def get_compatibility(sign1_id: str, sign2_id: str):
         "strengths": ["Mutual respect", "Complementary energies", "Shared interests"],
         "challenges": ["Different communication styles", "Need for patience"],
     }
+
+
+# Monthly horoscope themes
+MONTHLY_THEMES = [
+    "transformation and growth", "new beginnings and fresh starts",
+    "building stable foundations", "embracing creative expression",
+    "deepening meaningful connections", "career advancement and success",
+    "self-discovery and inner wisdom", "abundance and prosperity",
+]
+
+# Yearly horoscope keywords
+YEARLY_KEYWORDS = [
+    "prosperity", "love", "growth", "adventure", "stability",
+    "creativity", "wisdom", "healing", "success", "transformation",
+]
+
+
+@router.get("/monthly/{sign_id}")
+async def get_monthly_horoscope(sign_id: str):
+    """Get monthly horoscope for a zodiac sign (premium)."""
+    sign = get_sign_by_id(sign_id)
+    if not sign:
+        return {"error": "Invalid sign ID"}
+
+    now = datetime.utcnow()
+    month_seed = now.year * 12 + now.month + hash(sign_id)
+    random.seed(month_seed)
+
+    theme = random.choice(MONTHLY_THEMES)
+
+    return {
+        "sign_id": sign_id,
+        "sign": sign,
+        "month": now.strftime("%B %Y"),
+        "theme": theme.capitalize(),
+        "overview": f"This month is all about {theme} for {sign['name']}. The cosmic energies support your natural strengths and encourage you to step into your power. Pay attention to opportunities that align with your deeper values.",
+        "love": f"In matters of the heart, expect {random.choice(['passionate encounters', 'deeper connections', 'clarity in relationships', 'new romantic possibilities'])}. {random.choice(['Venus favors your sign', 'Communication is key', 'Trust your intuition', 'Be open to surprises'])}.",
+        "career": f"Professionally, focus on {random.choice(['building strategic alliances', 'showcasing your talents', 'taking calculated risks', 'establishing authority'])}. {random.choice(['A new opportunity may arise mid-month', 'Your efforts will be recognized', 'Collaboration leads to success', 'Financial gains are possible'])}.",
+        "health": f"Take care of your {random.choice(['physical energy', 'mental well-being', 'emotional balance', 'overall vitality'])}. {random.choice(['Regular exercise benefits you', 'Mindfulness practices help', 'Rest is essential', 'Nature heals'])}.",
+        "lucky_days": sorted(random.sample(range(1, 29), 5)),
+        "lucky_color": random.choice(["Royal Blue", "Emerald Green", "Golden Yellow", "Rose Pink", "Silver", "Crimson Red"]),
+        "lucky_number": random.randint(1, 99),
+        "affirmation": random.choice([
+            "I am aligned with my highest potential.",
+            "Abundance flows to me effortlessly.",
+            "I trust the journey of my life.",
+            "I embrace change with grace and courage.",
+            "My intuition guides me to the right path.",
+        ]),
+    }
+
+
+@router.get("/yearly/{sign_id}")
+async def get_yearly_horoscope(sign_id: str):
+    """Get yearly horoscope for a zodiac sign (premium)."""
+    sign = get_sign_by_id(sign_id)
+    if not sign:
+        return {"error": "Invalid sign ID"}
+
+    now = datetime.utcnow()
+    year_seed = now.year + hash(sign_id)
+    random.seed(year_seed)
+
+    keywords = random.sample(YEARLY_KEYWORDS, 3)
+
+    return {
+        "sign_id": sign_id,
+        "sign": sign,
+        "year": now.year,
+        "keywords": keywords,
+        "overview": f"For {sign['name']}, {now.year} is a year of {', '.join(keywords[:2])} and {keywords[2]}. The planetary alignments favor those who embrace authenticity and purposeful action. This is a time to dream big while staying grounded in practical steps.",
+        "love_forecast": f"Love and relationships undergo significant {random.choice(['evolution', 'deepening', 'transformation', 'renewal'])} this year. {random.choice(['Single signs may meet someone special in the first half of the year', 'Committed relationships grow stronger through shared experiences', 'Venus retrograde mid-year brings reflection on values', 'Jupiter brings expansion to your love sector'])}.",
+        "career_forecast": f"Career moves forward with {random.choice(['determination', 'strategic planning', 'creative innovation', 'confident leadership'])}. {random.choice(['Expect recognition for past efforts', 'New opportunities emerge in Q2', 'Financial stability increases', 'Professional networks expand significantly'])}.",
+        "personal_growth": f"This year calls you to {random.choice(['develop new skills', 'heal old wounds', 'expand your horizons', 'deepen spiritual practice'])}. {random.choice(['Travel or education may play a role', 'Meditation and reflection bring insights', 'Health improvements boost overall life quality', 'Creative pursuits bring fulfillment'])}.",
+        "key_months": {
+            "best": random.sample(["January", "March", "May", "July", "September", "November"], 3),
+            "challenging": random.sample(["February", "April", "June", "August", "October", "December"], 2),
+        },
+        "lucky_numbers": sorted(random.sample(range(1, 50), 5)),
+        "power_color": random.choice(["Midnight Blue", "Forest Green", "Sunset Orange", "Royal Purple", "Champagne Gold"]),
+        "mantra": random.choice([
+            "I create my own destiny with every choice.",
+            "This year, I rise to my fullest potential.",
+            "I am open to the magic of new possibilities.",
+            "My path unfolds perfectly in divine timing.",
+        ]),
+    }
