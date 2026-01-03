@@ -7,7 +7,7 @@ from .routers import (
     horoscope_router, geocoding_router, natal_chart_router,
     numerology_router, transits_router, subscription_router,
     astro_chat_router, synastry_router, pdf_report_router,
-    moon_phases_router
+    moon_phases_router, affirmations_router
 )
 
 settings = get_settings()
@@ -48,6 +48,7 @@ app.include_router(astro_chat_router)
 app.include_router(synastry_router)
 app.include_router(pdf_report_router)
 app.include_router(moon_phases_router)
+app.include_router(affirmations_router)
 
 
 @app.get("/")

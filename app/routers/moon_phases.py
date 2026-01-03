@@ -56,15 +56,18 @@ def calculate_moon_phase(target_date: date) -> dict:
     Calculate moon phase for a given date using the synodic month approximation.
     The lunar cycle is approximately 29.53 days.
     """
-    # Known new moon reference: January 6, 2000
-    known_new_moon = date(2000, 1, 6)
+    # Known FULL MOON reference: January 3, 2026 at 10:03 GMT (Wolf Moon Supermoon)
+    # Full moon is at day 14.765 of the cycle (halfway point)
+    known_full_moon = date(2026, 1, 3)
     lunar_cycle = 29.53058867
+    full_moon_offset = lunar_cycle / 2  # ~14.765 days
 
-    # Calculate days since known new moon
-    days_since = (target_date - known_new_moon).days
+    # Calculate days since known full moon
+    days_since_full = (target_date - known_full_moon).days
 
-    # Current position in lunar cycle (0-29.53)
-    cycle_position = days_since % lunar_cycle
+    # Convert to position in cycle (relative to new moon at 0)
+    # Full moon is at position ~14.765, so we adjust
+    cycle_position = (days_since_full + full_moon_offset) % lunar_cycle
 
     # Determine phase (0-7)
     phase_index = int((cycle_position / lunar_cycle) * 8) % 8
