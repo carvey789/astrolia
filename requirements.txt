@@ -16,3 +16,4 @@ python-dotenv>=1.0.0
 skyfield>=1.46
 # Note: AI chat uses Gemini REST API via httpx (no SDK needed)
 pytz>=2023.3
+fpdf2>=2.7.0

@@ -10,6 +10,7 @@ from .transits import router as transits_router
 from .subscription import router as subscription_router
 from .astro_chat import router as astro_chat_router
 from .synastry import router as synastry_router
+from .pdf_report import router as pdf_report_router
 
 __all__ = [
     "auth_router",
@@ -24,6 +25,5 @@ __all__ = [
     "subscription_router",
     "astro_chat_router",
     "synastry_router",
+    "pdf_report_router",
 ]
-
-
