@@ -11,6 +11,7 @@ from .subscription import router as subscription_router
 from .astro_chat import router as astro_chat_router
 from .synastry import router as synastry_router
 from .pdf_report import router as pdf_report_router
+from .moon_phases import router as moon_phases_router
 
 __all__ = [
     "auth_router",
@@ -26,4 +27,5 @@ __all__ = [
     "astro_chat_router",
     "synastry_router",
     "pdf_report_router",
+    "moon_phases_router",
 ]
