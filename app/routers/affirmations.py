@@ -60,7 +60,6 @@ async def generate_all_affirmations(sign: str) -> list:
     """Generate all 10 affirmations in a single Gemini API call."""
     api_key = os.getenv("GEMINI_API_KEY")
     if not api_key:
-        print(f"⚠️ No GEMINI_API_KEY found!")
         return []
 
     traits = ZODIAC_TRAITS.get(sign.lower(), "unique and special")
@@ -87,7 +86,6 @@ Love: I attract deep and meaningful connections.
 ... (continue for all 10 categories)"""
 
     try:
-        print(f"🤖 Generating 10 AI affirmations for {sign} in single call...")
         url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent?key={api_key}"
 
         async with httpx.AsyncClient(timeout=30.0) as client:
@@ -107,7 +105,6 @@ Love: I attract deep and meaningful connections.
                 text = data.get("candidates", [{}])[0].get("content", {}).get("parts", [{}])[0].get("text", "")
 
                 if text:
-                    print(f"✅ Got AI response, parsing...")
                     # Parse the response
                     affirmations = []
                     lines = text.strip().split('\n')
@@ -127,14 +124,13 @@ Love: I attract deep and meaningful connections.
                                 category=category,
                                 emoji=emoji
                             ))
-                            print(f"  ✨ {category}: {affirmation_text[:40]}...")
 
                     if affirmations:
                         return affirmations
             else:
-                print(f"⚠️ Gemini API error: {response.status_code} - {response.text[:200]}")
-    except Exception as e:
-        print(f"⚠️ AI affirmation generation error: {e}")
+            pass  # Log errors silently in production
+    except Exception:
+        pass  # Fallback to hardcoded
 
     return []
 
@@ -309,7 +305,6 @@ async def get_affirmations(sign: str) -> List[Affirmation]:
     # Check if we have cached affirmations for this sign
     cache_key = f"{today.isoformat()}_{sign_lower}"
     if cache_key in _affirmation_cache:
-        print(f"📦 Using cached affirmations for {sign_lower}")
         return _affirmation_cache[cache_key]
 
     # Generate ALL affirmations in a single API call
@@ -317,7 +312,6 @@ async def get_affirmations(sign: str) -> List[Affirmation]:
 
     # Fallback to hardcoded if AI fails
     if not affirmations:
-        print(f"⚠️ AI failed, using hardcoded affirmations for {sign_lower}")
         if sign_lower in AFFIRMATIONS:
             affirmations = AFFIRMATIONS[sign_lower]
 
