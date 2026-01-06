@@ -128,7 +128,7 @@ Love: I attract deep and meaningful connections.
                     if affirmations:
                         return affirmations
             else:
-            pass  # Log errors silently in production
+                pass  # Log errors silently in production
     except Exception:
         pass  # Fallback to hardcoded
 
