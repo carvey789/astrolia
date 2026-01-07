@@ -105,9 +105,10 @@ async def privacy_policy():
 
         <h2>5. Your Rights</h2>
         <p>You can request deletion of your account and all associated data at any time by contacting us.</p>
+        <p><a href="mailto:carvey789@gmail.com?subject=Astrolia%20Account%20Deletion%20Request" style="color: #6B46C1; font-weight: bold;">📧 Request Account Deletion</a></p>
 
         <h2>6. Contact Us</h2>
-        <p>For privacy concerns, contact: <strong>support@astrolia.app</strong></p>
+        <p>For privacy concerns, contact: <strong><a href="mailto:carvey789@gmail.com" style="color: #6B46C1;">carvey789@gmail.com</a></strong></p>
 
         <p style="margin-top: 40px; color: #666;">© 2026 Astrolia. All rights reserved.</p>
     </body>
