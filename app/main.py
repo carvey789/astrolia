@@ -60,6 +60,62 @@ async def root():
     }
 
 
+@app.get("/privacy-policy")
+async def privacy_policy():
+    from fastapi.responses import HTMLResponse
+    html = """
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <title>Astrolia - Privacy Policy</title>
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <style>
+            body { font-family: -apple-system, Arial, sans-serif; max-width: 800px; margin: 0 auto; padding: 20px; line-height: 1.6; }
+            h1 { color: #6B46C1; }
+            h2 { color: #553C9A; margin-top: 30px; }
+        </style>
+    </head>
+    <body>
+        <h1>🔮 Astrolia Privacy Policy</h1>
+        <p><strong>Last Updated:</strong> January 2026</p>
+
+        <h2>1. Information We Collect</h2>
+        <p>We collect the following information to provide personalized astrology readings:</p>
+        <ul>
+            <li><strong>Account Info:</strong> Email address, name (optional)</li>
+            <li><strong>Birth Details:</strong> Date, time, and location of birth (for natal chart calculations)</li>
+            <li><strong>Journal Entries:</strong> Your personal journal notes (stored securely)</li>
+        </ul>
+
+        <h2>2. How We Use Your Information</h2>
+        <ul>
+            <li>Generate personalized horoscopes and birth charts</li>
+            <li>Provide AI-powered astrology insights</li>
+            <li>Save your preferences and journal entries</li>
+        </ul>
+
+        <h2>3. Data Storage & Security</h2>
+        <p>Your data is stored securely on encrypted servers. We do not sell or share your personal information with third parties.</p>
+
+        <h2>4. Third-Party Services</h2>
+        <ul>
+            <li><strong>Google AI (Gemini):</strong> Powers our AI astrologer chat</li>
+            <li><strong>Authentication:</strong> Google Sign-In (optional)</li>
+        </ul>
+
+        <h2>5. Your Rights</h2>
+        <p>You can request deletion of your account and all associated data at any time by contacting us.</p>
+
+        <h2>6. Contact Us</h2>
+        <p>For privacy concerns, contact: <strong>support@astrolia.app</strong></p>
+
+        <p style="margin-top: 40px; color: #666;">© 2026 Astrolia. All rights reserved.</p>
+    </body>
+    </html>
+    """
+    return HTMLResponse(content=html)
+
+
 @app.get("/health")
 async def health_check():
     return {"status": "healthy"}
