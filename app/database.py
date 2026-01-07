@@ -5,7 +5,14 @@ from .config import get_settings
 
 settings = get_settings()
 
-engine = create_engine(settings.database_url)
+# Connection pool settings to prevent SSL connection drops
+engine = create_engine(
+    settings.database_url,
+    pool_pre_ping=True,  # Test connection before use
+    pool_recycle=300,    # Recycle connections after 5 minutes
+    pool_size=5,         # Max connections in pool
+    max_overflow=10,     # Extra connections when pool is full
+)
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
 Base = declarative_base()
